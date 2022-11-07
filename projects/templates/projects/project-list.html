@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% block content %}
+  {{ message }}
+  <p>Hello, you are on the {{ page }} page.</p>
+  {% if number > 10 %}
+    <p>Number is greater than 10!</p>
+  {% elif number == 10 %}
+    <p>Number is exactly 10!</p>
+  {% else %}
+    <p>Number is less than 10!</p>
+  {% endif %}
+  <hr />
+  <h1>Project List</h1>
+  <ul>
+    {% for project in projects %}
+      <li>
+        <a href="{% url 'project' project.id %}">Title: {{ project.title }}</a> --- {{ project.description }}
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock content %}
