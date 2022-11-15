@@ -1,7 +1,64 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.contrib.auth import login, authenticate, logout
+from django.contrib import messages
+from .forms import CustomUserCreationForm
+from django.contrib.auth.models import User
 from .models import Profile
 
-# Create your views here.
+def loginUser(request):
+    page = 'login'
+    
+    if request.user.is_authenticated:
+        return redirect('profiles')
+    
+    if request.method == 'POST':
+        # print(request.POST)
+        username = request.POST['username']
+        password = request.POST['password']
+        
+        try:
+            user = User.objects.get(username=username)
+        except:
+            messages.add_message(request, messages.ERROR, 'Username doesn\'t exist!')
+        
+        # For valid credentials, we get an User or None
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            # Log in the user (creates a session, returns as a browser cookie)
+            login(request, user)
+            return redirect('profiles')
+        
+        messages.add_message(request, messages.ERROR, 'Username or password is incorrect!')
+    
+    context = {'page': page}
+    return render(request, 'users/login-signup.html', context)
+
+def logoutUser(request):
+    logout(request)
+    messages.add_message(request, messages.INFO, 'User was successfully logged out!')
+    return redirect('login')
+
+def registerUser(request):
+    page = 'register'
+    form = CustomUserCreationForm()
+    
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False) # Create a User model instance, but don't save to the db yet.
+            user.username = user.username.lower()
+            user.save()
+
+            messages.add_message(request, messages.SUCCESS, 'User was successfully created!')
+            login(request, user) # Creates a session in the table and the cookie and logs in the user.
+            return redirect('profiles')
+
+        messages.add_message(request, messages.ERROR, 'Entered information is invalid!')
+
+    context = {'page': page, 'form': form}
+    return render(request, 'users/login-signup.html', context)
+
 def profiles(request):
     profiles = Profile.objects.all()
     context = {'profiles': profiles}
