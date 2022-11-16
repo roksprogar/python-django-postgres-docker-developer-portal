@@ -15,7 +15,7 @@ def loginUser(request):
     
     if request.method == 'POST':
         # print(request.POST)
-        username = request.POST['username']
+        username = request.POST['username'].lower()
         password = request.POST['password']
         
         try:
@@ -29,7 +29,7 @@ def loginUser(request):
         if user is not None:
             # Log in the user (creates a session, returns as a browser cookie)
             login(request, user)
-            return redirect('profiles')
+            return redirect(request.GET['next'] if 'next' in request.GET else 'account')
         
         messages.add_message(request, messages.ERROR, 'Username or password is incorrect!')
     
@@ -54,7 +54,7 @@ def registerUser(request):
 
             messages.add_message(request, messages.SUCCESS, 'User was successfully created!')
             login(request, user) # Creates a session in the table and the cookie and logs in the user.
-            return redirect('edit_account')
+            return redirect(request.GET['next'] if 'next' in request.GET else 'edit_account')
 
         messages.add_message(request, messages.ERROR, 'Entered information is invalid!')
 
