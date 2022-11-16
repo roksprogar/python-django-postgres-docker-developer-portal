@@ -1,10 +1,10 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
-from .forms import CustomUserCreationForm, ProfileForm, SkillForm
+from .forms import CustomUserCreationForm, ProfileForm, SkillForm, MessageForm
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from .models import Profile
+from .models import Profile, Message
 from .utils import searchProfiles, paginateProfiles
 
 def loginUser(request):
@@ -83,13 +83,13 @@ def profile(request, pk):
 
 @login_required(login_url="login")
 def userAccount(request):
-    profile = request.user.profile
+    profileObj = request.user.profile
     
     # Get all skills that have a description (exclude all with empty string descriptions)
-    skills = profile.skill_set.all()
-    projects = profile.project_set.all()
+    skills = profileObj.skill_set.all()
+    projects = profileObj.project_set.all()
     
-    context={'profile': profile, 'skills': skills, 'projects': projects}
+    context={'profile': profileObj, 'skills': skills, 'projects': projects}
     return render(request, 'users/profile-account.html', context)
 
 @login_required(login_url="login")
@@ -139,6 +139,7 @@ def updateSkill(request, pk):
     context = {'form': form}
     return render(request, 'users/skill-form.html', context)
 
+@login_required(login_url="login")
 def deleteSkill(request, pk):
     profile = request.user.profile
     skill = profile.skill_set.get(id=pk)
@@ -150,4 +151,50 @@ def deleteSkill(request, pk):
     
     context = {'object': skill}
     return render(request, 'delete_confirm.html', context)
+
+@login_required(login_url="login")
+def inbox(request):
+    profile = request.user.profile
+    messageRequests = profile.messages.all()
+    unreadCount = messageRequests.filter(is_read=False).count()
+    context = {'messagesObj': messageRequests, 'unreadCount': unreadCount}
+    return render(request, 'users/inbox.html', context)
+
+@login_required(login_url="login")
+def message(request, pk):
+    profile = request.user.profile
+    messageObj = profile.messages.get(id=pk) # To make sure a user can only view his own messages.
     
+    if not messageObj.is_read:
+        messageObj.is_read = True
+        messageObj.save()
+    
+    context = {'messageObj': messageObj}
+    return render(request, 'users/message.html', context)
+
+def createMessage(request, pk):
+    recipient = Profile.objects.get(id=pk)
+    form = MessageForm()
+    
+    try:
+        sender = request.user.profile
+    except:
+        sender = None
+    
+    if request.method == 'POST':
+        form = MessageForm(request.POST)
+        if form.is_valid():
+            message = form.save(commit=False)
+            message.sender = sender
+            message.recipient = recipient
+            
+            if sender:
+                message.name = sender.name
+                message.email = sender.email
+            
+            message.save()
+            messages.add_message(request, messages.SUCCESS, "Your message was sent successfully!")
+            return redirect('profile', pk=recipient.id)
+    
+    context = {'recipient': recipient, 'form': form}
+    return render(request, 'users/message_form.html', context)
