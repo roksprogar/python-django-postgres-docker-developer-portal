@@ -1,0 +1,14 @@
+services:
+  postgresdb:
+    image: postgres:14
+    environment:
+      - POSTGRES_PASSWORD=rootpassword
+      - POSTGRES_DB=agsdb
+      - POSTGRES_USER=agsuser
+    volumes:
+      - postgresdb_data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+
+volumes:
+  postgresdb_data:
